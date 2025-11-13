@@ -39,7 +39,7 @@ COPY --from=assets /app/public/build ./public/build
 RUN mkdir -p storage/database && touch storage/database/database.sqlite
 
 # Instalar dependencias PHP
-RUN composer install --no-dev --no-interaction --optimize-autoloader
+RUN composer install --no-dev --no-interaction || true && php artisan package:discover -vvv
 
 # Crear archivo SQLite (si no existe)
 RUN mkdir -p storage/database && touch storage/database/database.sqlite
