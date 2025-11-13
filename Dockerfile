@@ -1,33 +1,48 @@
-# Imagen base con PHP y Composer
+# ============================
+# Stage 1: Build de assets
+# ============================
+FROM node:18-alpine AS assets
+
+WORKDIR /app
+
+COPY package*.json vite.config.js ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+
+# ============================
+# Stage 2: PHP + Composer + SQLite
+# ============================
 FROM php:8.2-fpm
 
-# Instalar dependencias del sistema
+# Instalación de dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev nodejs npm \
-    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath gd
+    git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev sqlite3 \
+    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath gd pdo_sqlite
 
 # Instalar Composer
-COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
-# Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar archivos del proyecto
+# Copiar proyecto
 COPY . .
 
-# Permisos para Laravel
+# Copiar los assets generados desde el stage de Node
+COPY --from=assets /app/public/build ./public/build
+
+# Instalar dependencias PHP
+RUN composer install --no-dev --no-interaction --optimize-autoloader
+
+# Crear archivo SQLite (si no existe)
+RUN mkdir -p storage/database && touch storage/database/database.sqlite
+
+# Permisos correctos
 RUN chmod -R 775 storage bootstrap/cache
 
-# Instalar dependencias PHP y Node
-RUN composer install
-RUN npm install && npm run build
-
-# Generar APP_KEY y ejecutar migraciones
-RUN php artisan key:generate --force || true
-RUN php artisan migrate --force || true
-
-# Exponer el puerto 8000
+# Exponer puerto (Render usará $PORT)
 EXPOSE 8000
 
-# Comando para ejecutar Laravel
-CMD php artisan serve --host=0.0.0.0 --port=8000
+CMD php artisan serve --host=0.0.0.0 --port=$PORT
