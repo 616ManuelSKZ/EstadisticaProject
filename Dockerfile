@@ -19,7 +19,7 @@ COPY . .
 RUN chmod -R 775 storage bootstrap/cache
 
 # Instalar dependencias PHP y Node
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install
 RUN npm install && npm run build
 
 # Generar APP_KEY y ejecutar migraciones
