@@ -36,6 +36,8 @@ COPY . .
 # Copiar los assets generados desde el stage de Node
 COPY --from=assets /app/public/build ./public/build
 
+RUN mkdir -p storage/database && touch storage/database/database.sqlite
+
 # Instalar dependencias PHP
 RUN composer install --no-dev --no-interaction --optimize-autoloader
 
